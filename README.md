@@ -5,7 +5,7 @@
 ### Usage
 
 ```sh
-yarn install apk-patcher
+yarn global add apk-patcher
 apk-patcher -i path/to/file.apk -p path/to/patches
 ```
 
