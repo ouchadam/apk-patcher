@@ -5,6 +5,7 @@
   "repository": "git@github.com:ouchadam/apk-patcher.git",
   "author": "ouchadam",
   "license": "MIT",
+  "private": false,
   "scripts": {
     "start": "node src/index.js"
   },
