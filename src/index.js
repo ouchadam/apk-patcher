@@ -10,7 +10,14 @@ const assets = `${workingDir}/assets`
 const tmpDir = `${workingDir}/tmp-build`
 const libDir = `${workingDir}/lib`
 const apktool = `${libDir}/apktool.sh`
-const zipalign = `${libDir}/zipalign`
+let zipalign;
+
+if (process.platform === "darwin") {
+    zipalign = `${libDir}/darwin/zipalign`
+} else {
+    zipalign = `${libDir}/linux/zipalign`
+}
+
 const apksigner = `${libDir}/apksigner`
 
 program
