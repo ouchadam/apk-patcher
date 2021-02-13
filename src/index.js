@@ -24,8 +24,8 @@ const diff = async (fileA, fileB) => {
     await execute(`${apktool} d -f ${fileB} -o ${tmpDir}/b`)
     await execute(`diff --new-file -x apktool.yml -ruNB ${tmpDir}/a ${tmpDir}/b > ${tmpDir}/diff.patch`, true)
 
-    await execute(`sed -i "s|${tmpDir}/a/||g" ${tmpDir}/diff.patch`)
-    await execute(`sed -i "s|${tmpDir}/b/||g" ${tmpDir}/diff.patch`)
+    await execute(`sed -i '' -e "s|${tmpDir}/a/||g" ${tmpDir}/diff.patch`)
+    await execute(`sed -i '' -e "s|${tmpDir}/b/||g" ${tmpDir}/diff.patch`)
 
     await execute(`cp ${tmpDir}/diff.patch .`)
     await execute(`rm -r ${tmpDir}`)
