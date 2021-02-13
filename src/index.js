@@ -14,8 +14,35 @@ const zipalign = `${libDir}/zipalign`
 const apksigner = `${libDir}/apksigner`
 
 program
-    .option('-i, --input <file>', 'apk to patch')
-    .option('-p, --patches <patches>', 'directory, single file or comma separator list')
+    .command('diff <file-a> <file-b>')
+    .action((fileA, fileB) => {
+        diff(fileA, fileB).catch(error => console.log(error))
+    })
+
+const diff = async (fileA, fileB) => {
+    await execute(`${apktool} d -f ${fileA} -o ${tmpDir}/a`)
+    await execute(`${apktool} d -f ${fileB} -o ${tmpDir}/b`)
+    await execute(`diff --new-file -x apktool.yml -ruNB ${tmpDir}/a ${tmpDir}/b > ${tmpDir}/diff.patch`, true)
+
+    await execute(`sed -i "s|${tmpDir}/a/||g" ${tmpDir}/diff.patch`)
+    await execute(`sed -i "s|${tmpDir}/b/||g" ${tmpDir}/diff.patch`)
+
+    await execute(`cp ${tmpDir}/diff.patch .`)
+    await execute(`rm -r ${tmpDir}`)
+}
+
+program
+    .command('patch <input> [patches]')
+    .action((input, patches) => {
+        main(input, patches)
+            .catch(err => {
+                console.log("")
+                console.log("Encountered error:")
+                console.error(err.cmd)
+                console.error(err.message)
+                return execute(`rm -r ${tmpDir}`)
+            })
+    })
 
 program.parse(process.argv);
 
@@ -43,14 +70,16 @@ async function main(apkInput, patches) {
     console.log(`Finished, generated: \n${signedOutput} \n${unsignedOutputName}`)
 }
 
-async function execute(command) {
+async function execute(command, ignoreExitCode) {
     try {
         const { stdout } = await exec(command);
         if (stdout.length != 0) {
             console.log(stdout.trim());
         }
     } catch (err) {
-        throw { cmd: err.cmd, message: err.stderr }
+        if (!ignoreExitCode) {
+            throw { cmd: err.cmd, message: err.stderr }
+        }
     }
 }
 
@@ -63,12 +92,3 @@ function findPatches(path) {
         return glob.sync(`${path}/*.patch`)
     }
 }
-
-main(program.input, program.patches)
-    .catch(err => {
-        console.log("")
-        console.log("Encountered error:")
-        console.error(err.cmd)
-        console.error(err.message)
-        execute(`rm -r ${tmpDir}`)
-    })
