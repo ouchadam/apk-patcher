@@ -29,7 +29,7 @@ program
 const diff = async (fileA, fileB) => {
     await execute(`${apktool} d -f ${fileA} -o ${tmpDir}/a`)
     await execute(`${apktool} d -f ${fileB} -o ${tmpDir}/b`)
-    await execute(`diff --new-file -x apktool.yml -ruNB ${tmpDir}/a ${tmpDir}/b > ${tmpDir}/diff.patch`, true)
+    await execute(`diff --new-file -ruNB -x 'apktool.yml' ${tmpDir}/a ${tmpDir}/b > ${tmpDir}/diff.patch`, true)
 
     await execute(`sed -i '' -e "s|${tmpDir}/a/||g" ${tmpDir}/diff.patch`)
     await execute(`sed -i '' -e "s|${tmpDir}/b/||g" ${tmpDir}/diff.patch`)
@@ -64,7 +64,10 @@ async function main(apkInput, patches) {
 
     const patchFiles = findPatches(patches)
     await Promise.all(patchFiles.map(patchFile => {
-        execute(`patch -u -d ${tmpDir} -p0 < ${patchFile}`)
+        return execute(`patch -f -u -d ${tmpDir} -p0 < ${patchFile}`)
+        .catch((error) => {
+            console.log(error)
+        })
     }))
     await execute(`${apktool} empty-framework-dir`)
     await execute(`${apktool} b -f ${tmpDir} -o ${unalignedOutputName}`)
