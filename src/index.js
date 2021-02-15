@@ -4,6 +4,8 @@ const program = require('commander');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const glob = require("glob")
+const fetch = require("node-fetch")
+const fs = require("fs")
 
 const workingDir = `${__dirname}/..`
 const assets = `${workingDir}/assets`
@@ -62,12 +64,12 @@ async function main(apkInput, patches) {
 
     await execute(`${apktool} d -f ${apkInput} -o ${tmpDir}`)
 
-    const patchFiles = findPatches(patches)
+    const patchFiles = await findPatches(patches)
     await Promise.all(patchFiles.map(patchFile => {
         return execute(`patch -f -u -d ${tmpDir} -p0 < ${patchFile}`)
-        .catch((error) => {
-            console.log(error)
-        })
+            .catch((error) => {
+                console.log(error)
+            })
     }))
     await execute(`${apktool} empty-framework-dir`)
     await execute(`${apktool} b -f ${tmpDir} -o ${unalignedOutputName}`)
@@ -93,8 +95,19 @@ async function execute(command, ignoreExitCode) {
     }
 }
 
-function findPatches(path) {
-    if (path.includes(",")) {
+async function findPatches(path) {
+    if (path.includes("http://") || path.includes("https://")) {
+        console.log(`Pulling patch ${path}`)
+        const result = await fetch(path)
+        const outputFile = `${tmpDir}/import.patch`
+        const fileStream = fs.createWriteStream(outputFile)
+        await new Promise((resolve, reject) => {
+            result.body.pipe(fileStream)
+            result.body.on("error", reject)
+            fileStream.on("finish", resolve)
+        });
+        return [outputFile]
+    } else if (path.includes(",")) {
         return path.split(",").map((each => findPatches(each))).flat()
     } else if (path.includes(".patch")) {
         return [path]
